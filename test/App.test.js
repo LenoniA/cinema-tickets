@@ -10,6 +10,6 @@ describe('purchaseTickets', () => {
 
         let ticketService = new TicketService;
 
-        expect(ticketService.purchaseTickets(request) === "OK");
+        expect(ticketService.purchaseTickets(request.accountNumber, request.ticketTypeRequest) === "OK");
     });
 }); 
