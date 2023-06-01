@@ -20,13 +20,13 @@ export default class TicketService {
     tickets.forEach(category => {
       switch (category.getTicketType()) {
         case "ADULT":
-          this.#noOfAdults = category.getNoOfTickets();
+          this.#noOfAdults += category.getNoOfTickets();
           break;
         case "CHILD":
-          this.#noOfChildren = category.getNoOfTickets();
+          this.#noOfChildren += category.getNoOfTickets();
           break;
         case "INFANT":
-          this.#noOfInfants = category.getNoOfTickets();
+          this.#noOfInfants += category.getNoOfTickets();
           break;  
       }
     });
@@ -43,7 +43,7 @@ export default class TicketService {
   }
 
   #checkAdults() {
-    if (this.#noOfInfants && (this.#noOfInfants !== this.#noOfAdults)) {
+    if (this.#noOfInfants && (this.#noOfInfants > this.#noOfAdults)) {
       throw new TypeError('There must be an adult for every infant');
     }
 
@@ -64,16 +64,23 @@ export default class TicketService {
   purchaseTickets(accountId, ...ticketTypeRequests) {
     // throws InvalidPurchaseException
     this.#init(...ticketTypeRequests);
+    let total;
+    let seatNum;
 
     try {
+      //Check the configuration of the party before calculating totals and seat allocation
       this.#checkRange();
       this.#checkAdults();
-      this.#paymentService.makePayment(accountId, this.#calculateTotal());
-      this.#bookingService.reserveSeat(accountId, this.#calculateSeatNum());
+
+      total = this.#calculateTotal();
+      seatNum = this.#calculateSeatNum();
+
+      this.#paymentService.makePayment(accountId, total);
+      this.#bookingService.reserveSeat(accountId, seatNum);
     } catch (error) {
       throw new InvalidPurchaseException(error);
     }
 
-    return true;
+    return { total, seatNum };
   }
 }
