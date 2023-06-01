@@ -1,12 +1,12 @@
 import TicketService from '../src/pairtest/TicketService';
 import TicketTypeRequest from '../src/pairtest/lib/TicketTypeRequest';
-import InvalidPurchaseException from '../src/pairtest/lib/InvalidPurchaseException';
 
 describe('purchaseTickets', () => {
     let request;
     let ticketService;
 
     beforeEach(() => {
+        // Reset to a state that passes and initialise ticketService
         request = { accountNumber: 1, ticketTypeRequest: [new TicketTypeRequest("ADULT", 1)]};
         ticketService = new TicketService();
     });
@@ -34,6 +34,7 @@ describe('purchaseTickets', () => {
     });
 
 
+    // Rejection tests
     it('Should reject requests with invalid account id', () => {
         request.accountNumber = 0.444;
         expect(() => {

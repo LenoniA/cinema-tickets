@@ -4,29 +4,21 @@ import TicketPaymentService from '../thirdparty/paymentgateway/TicketPaymentServ
 import SeatReservationService from '../thirdparty/seatbooking/SeatReservationService';
 
 export default class TicketService {
-  #paymentService;
-  #bookingService;
-
   #noOfAdults = 0;
   #noOfChildren = 0;
   #noOfInfants = 0;
-  
-  constructor() {
-    this.#paymentService = new TicketPaymentService;
-    this.#bookingService = new SeatReservationService;
-  }
 
   #init(tickets) {
-    tickets.forEach(category => {
-      switch (category.getTicketType()) {
+    tickets.forEach(request => {
+      switch (request.getTicketType()) {
         case "ADULT":
-          this.#noOfAdults += category.getNoOfTickets();
+          this.#noOfAdults += request.getNoOfTickets();
           break;
         case "CHILD":
-          this.#noOfChildren += category.getNoOfTickets();
+          this.#noOfChildren += request.getNoOfTickets();
           break;
         case "INFANT":
-          this.#noOfInfants += category.getNoOfTickets();
+          this.#noOfInfants += request.getNoOfTickets();
           break;  
       }
     });
@@ -62,7 +54,6 @@ export default class TicketService {
 
 
   purchaseTickets(accountId, ...ticketTypeRequests) {
-    // throws InvalidPurchaseException
     this.#init(...ticketTypeRequests);
     let total;
     let seatNum;
@@ -75,8 +66,8 @@ export default class TicketService {
       total = this.#calculateTotal();
       seatNum = this.#calculateSeatNum();
 
-      this.#paymentService.makePayment(accountId, total);
-      this.#bookingService.reserveSeat(accountId, seatNum);
+      new TicketPaymentService().makePayment(accountId, total);
+      new SeatReservationService().reserveSeat(accountId, seatNum);
     } catch (error) {
       throw new InvalidPurchaseException(error);
     }
