@@ -42,7 +42,7 @@ describe('purchaseTickets', () => {
         }).toThrowError("accountId must be an integer");
     });
 
-    it('Should reject requests with no tickets requests', () => {
+    it('Should reject requests with empty array of ticket requests', () => {
         request.ticketTypeRequest = [];
         expect(() => {
             ticketService.purchaseTickets(request.accountNumber, request.ticketTypeRequest);
