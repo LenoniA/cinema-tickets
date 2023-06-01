@@ -1,38 +1,79 @@
 import TicketTypeRequest from './lib/TicketTypeRequest.js';
 import InvalidPurchaseException from './lib/InvalidPurchaseException.js';
-import makePayment from '../thirdparty/paymentgateway/TicketPaymentService';
-import reserveSeat from '../thirdparty/seatbooking/SeatReservationService'
+import TicketPaymentService from '../thirdparty/paymentgateway/TicketPaymentService';
+import SeatReservationService from '../thirdparty/seatbooking/SeatReservationService';
 
 export default class TicketService {
-  /**
-   * Should only have private methods other than the one below.
-   */
+  #paymentService;
+  #bookingService;
 
-  _calculateTotal(tickets) {
-    return tickets.reduce((acc, person) => {
-      return acc + (person.getTicketType() === "ADULT" ? 20 : (person.getTicketType() === "CHILD" ? 10 : 0));
-    }, 0);
+  #noOfAdults = 0;
+  #noOfChildren = 0;
+  #noOfInfants = 0;
+  
+  constructor() {
+    this.#paymentService = new TicketPaymentService;
+    this.#bookingService = new SeatReservationService;
   }
 
-  _calculateSeatNum(tickets) {
-    return tickets.filter((person) => {
-      return person.getTicketType() === "ADULT" || person.getTicketType() === "CHILD";
-    }).length;
+  #init(tickets) {
+    tickets.forEach(category => {
+      switch (category.getTicketType()) {
+        case "ADULT":
+          this.#noOfAdults = category.getNoOfTickets();
+          break;
+        case "CHILD":
+          this.#noOfChildren = category.getNoOfTickets();
+          break;
+        case "INFANT":
+          this.#noOfInfants = category.getNoOfTickets();
+          break;  
+      }
+    });
   }
 
-  _makePayment(accountId, totalAmountToPay) {
-    makePayment(accountId, totalAmountToPay);
+  #checkRange() {
+    if (!(this.#noOfAdults || this.#noOfChildren || this.#noOfInfants)) {
+      throw new TypeError('Number of people must be greater than 0');
+    } 
+    
+    if ((this.#noOfAdults + this.#noOfChildren + this.#noOfInfants) > 20) {
+      throw new TypeError('Cannot purchase more than 20 tickets');
+    }
   }
 
-  _bookSeats(accountId, totalSeatsToAllocate) {
-    reserveSeat(accountId, totalSeatsToAllocate);
+  #checkAdults() {
+    if (this.#noOfInfants && (this.#noOfInfants !== this.#noOfAdults)) {
+      throw new TypeError('There must be an adult for every infant');
+    }
+
+    if (this.#noOfChildren && !this.#noOfAdults) {
+      throw new TypeError('There must be an adult to accompany the child/children');
+    }
   }
+
+  #calculateTotal() {
+    return this.#noOfAdults * 20 + this.#noOfChildren * 10;
+  }
+  
+  #calculateSeatNum() {
+    return this.#noOfAdults + this.#noOfChildren;
+  }
+
 
   purchaseTickets(accountId, ...ticketTypeRequests) {
     // throws InvalidPurchaseException
-    console.log(this._calculateTotal(...ticketTypeRequests));
-    console.log(this._calculateSeatNum(...ticketTypeRequests));
+    this.#init(...ticketTypeRequests);
 
-    return "OK";
+    try {
+      this.#checkRange();
+      this.#checkAdults();
+      this.#paymentService.makePayment(accountId, this.#calculateTotal());
+      this.#bookingService.reserveSeat(accountId, this.#calculateSeatNum());
+    } catch (error) {
+      throw new InvalidPurchaseException(error);
+    }
+
+    return true;
   }
 }
